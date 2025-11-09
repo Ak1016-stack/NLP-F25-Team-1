@@ -4,10 +4,10 @@
 
 **Team Members:**
 
-* [Name 1]
-* [Name 2]
-* [Name 3]
-* [Name 4]
+* Ashmit
+* Akshith
+* Harsh
+* Lovnish
 
 **Duration:** 3 Weeks
 **Course:** NLP — Final Project
