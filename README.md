@@ -138,5 +138,3 @@ By the end of the project, the team will have:
 * A focused **error analysis** that reveals whether specialized fine-tuning better handles the quirks of Hinglish text.
 
 ---
-
-Would you like me to also add a short **“Getting Started” section** (with environment setup, dependencies, and sample CLI commands) to this so your team can directly begin coding from the repo?
