@@ -138,3 +138,99 @@ By the end of the project, the team will have:
 * A focused **error analysis** that reveals whether specialized fine-tuning better handles the quirks of Hinglish text.
 
 ---
+
+## 🔟 Milestones (Shared)
+
+- **M0 — Repo Ready (Tue, Nov 11):** repo scaffold, issue board, branch rules, data access verified  
+- **M1 — Data Pipeline Green (Sat, Nov 15):** tokenization + label alignment + splits reproducible  
+- **M2 — First Full Fine-Tune (Thu, Nov 20):** mBERT baseline F1 on dev  
+- **M3 — Dual Models Tuned (Mon, Nov 24):** mBERT + XLM-R best checkpoints/configs locked  
+- **M4 — Eval + Error Analysis (Thu, Nov 27):** tables, plots, error slices  
+- **M5 — Final Package (Mon, Dec 1):** code, results, notebooks, slides
+
+---
+
+## 1️⃣1️⃣ Work Distribution (Owners, Deadlines, DoD)
+
+### A) **Ashmit — Data & Preprocessing Lead** (Nov 11–15)
+- **PR-1: Data pipeline** — *Due Thu, Nov 13*  
+  - `data_prep.py`: load COMI-LINGUA NER; normalize; optional `script_id`; dedupe  
+  - Tokenize + BIO alignment (first subtoken keeps label; others `-100`)  
+  - **DoD:** deterministic runs; unit tests for alignment edge cases pass
+- **PR-2: Splits + dataset card** — *Due Sat, Nov 15*  
+  - Stratify by entity + script; export HF Datasets + JSONL; add `dataset_card.md`  
+  - **Artifacts:** `data/processed/{train,dev,test}.jsonl`, `dataset_card.md`  
+- **Hand-off:** schemas + 10-row sample to **Harsh** & **Akshith** EOD Nov 15  
+- **Stretch:** add `script_id` feature (0=Roman, 1=Devanagari)
+
+### B) **Akshith — Training & MLOps Owner** (Nov 13–24)
+- **PR-3: mBERT training pipeline** — *Due Tue, Nov 18*  
+  - `train.py` (HF `Trainer`), AdamW, early stop on dev F1, AMP, grad clip, best-F1 ckpt  
+  - **DoD:** one full run completes; dev F1 logged to `runs.csv`
+- **PR-4: XLM-R + hyperparam sweeps** — *Due Mon, Nov 24*  
+  - Sweep LR/epochs/wd; same preprocessing; save best configs  
+  - **Artifacts:** `checkpoints/*`, `configs/{mb, xlm-r}.yaml`, `runs.csv` (with seeds/metrics)  
+- **Hand-off:** best checkpoints + configs to **Lovnish** EOD Nov 24  
+- **Stretch:** LoRA/PEFT flag `--peft` for XLM-R
+
+### C) **Harsh — Baselines & Prompted LLMs** (Nov 15–23)
+- **PR-5: LLM baselines harness** — *Due Wed, Nov 19*  
+  - Prompt templating (0/1/5-shot, 3 seeds), tag extraction, **BIO repair**  
+  - **DoD:** reproducible CSV/JSONL with entity-valid BIO aligned to gold
+- **PR-6: Baseline comparison table** — *Due Sun, Nov 23*  
+  - Aggregate GPT-4o, Claude-3.5, Codeswitch (reported) + our first mBERT run  
+  - **Artifacts:** `eval/baselines.csv`, `figs/baselines_bar.png`, short prompt-sensitivity notes  
+- **Hand-off:** JSONL predictions to **Lovnish** EOD Nov 23  
+- **Stretch:** prompts targeting Devanagari English borrowings
+
+### D) **Lovnish — Evaluation, Error Analysis & Report** (Nov 18–Dec 1)
+- **PR-7: Evaluation suite** — *Due Thu, Nov 20*  
+  - `evaluate.py` (`seqeval`): entity-level micro F1, per-entity F1, per-script F1  
+  - CI check fails on schema mismatch  
+  - **DoD:** `results/{model}/{dev,test}_metrics.json`
+- **PR-8: Error analysis** — *Due Thu, Nov 27*  
+  - `notebooks/error_analysis.ipynb`: confusions (ORG↔MISC), script slices, 10 curated failures  
+  - **Artifacts:** `figs/*`, example tables (gold vs pred)
+- **PR-9: Final presentation** — *Due Mon, Dec 1*  
+  - **5–8 slides:** setup, methods, results, slices, 3 insights, 2 limitations, 2 next steps  
+  - **DoD:** PDF + PPTX committed; figures render on fresh clone
+
+---
+
+## 1️⃣2️⃣ Detailed Task Matrix (ET)
+
+| Date | Task | Owner | Output / DoD |
+|---|---|---|---|
+| **Tue, Nov 11** | Repo bootstrap, issue board, Makefile | Akshith | `README.md`, `Makefile`, branch rules (**M0**) |
+| **Thu, Nov 13** | Data loader + label alignment | **Ashmit** | `src/data_prep.py`, unit tests green |
+| **Sat, Nov 15** | Splits + dataset card | **Ashmit** | processed JSONL + `dataset_card.md` (**M1**) |
+| **Tue, Nov 18** | mBERT training pipeline | **Akshith** | `src/train.py`, first dev F1 (**M2**) |
+| **Wed, Nov 19** | LLM evaluation harness | **Harsh** | prompts + BIO repair + CSV/JSONL preds |
+| **Thu, Nov 20** | Eval script (seqeval) | **Lovnish** | `src/evaluate.py`, metrics JSON (**M2 support**) |
+| **Sun, Nov 23** | LLM baselines (0/1/5-shot) | **Harsh** | `eval/baselines.csv` |
+| **Mon, Nov 24** | XLM-R + sweeps; lock configs | **Akshith** | best ckpts + `configs/*` (**M3**) |
+| **Thu, Nov 27** | Error analysis notebook + figs | **Lovnish** | slices, confusions, exemplars (**M4**) |
+| **Sat, Nov 29** | Fresh-clone repro dry-run | All | `make eval_small` passes |
+| **Mon, Dec 1** | Final slides + packaging | **Lovnish (+ all)** | PDF/PPTX + `results/` (**M5**) |
+
+---
+
+## 1️⃣3️⃣ Interfaces & Hand-offs
+
+- **Data → Training:** columns `tokens`, `labels`, `script_id`; BIO labels; subtokens = `-100`  
+- **Training → Eval:** `predictions.jsonl` (token-level BIO + entity spans)  
+- **LLMs → Eval:** same schema (after BIO repair)  
+- **Eval → Report:** `results_table.csv`, `per_entity_f1.csv`, `per_script_f1.csv`, **10** failure exemplars
+
+---
+
+## 1️⃣4️⃣ Risks & Mitigations
+
+- **GPU time bottleneck:** prioritize mBERT; limit XLM-R sweeps to top 3 configs; use grad accumulation  
+- **LLM tag noise:** strict BIO repair + span validation; log and justify any exclusions  
+- **Label alignment bugs:** unit tests for multi-subword tokens/punctuation; manual spot-check of 50 sentences (Nov 15–16)
+
+---
+
+## 1️⃣5️⃣ Repo Structure (proposed)
+
