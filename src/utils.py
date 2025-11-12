@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import List, Dict, Any
+IGN_TAG = "<IGN>"
 import random
 import numpy as np
 
@@ -28,19 +29,21 @@ def build_label_list_from_dataset(dataset) -> List[str]:
 
 def to_id_labels(ex_labels: List[Any], label2id: Dict[str, int]) -> List[int]:
     """
-    Convert a sequence of tag strings / -100 to ID sequence.
+    Convert a sequence of tag strings to ID sequence.
+    IGN_TAG ("<IGN>") -> -100.
     """
-    converted = []
+    out = []
     for lab in ex_labels:
-        if lab == -100:
-            converted.append(-100)
+        if lab == IGN_TAG:
+            out.append(-100)
         elif isinstance(lab, str):
-            converted.append(label2id[lab])
+            out.append(label2id[lab])
         else:
-            converted.append(int(lab))
-    return converted
+            # If already an int for some reason, keep it (rare).
+            out.append(int(lab))
+    return out
 
-def infer_label_mappings(dataset) -> (List[str], Dict[str,int], Dict[int,str]):
+def infer_label_mappings(dataset) -> (List[str], Dict[str,int], Dict[int,str]): # type: ignore
     label_list = build_label_list_from_dataset(dataset)
     label2id = {l: i for i, l in enumerate(label_list)}
     id2label = {i: l for l, i in label2id.items()}

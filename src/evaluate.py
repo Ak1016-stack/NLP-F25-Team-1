@@ -17,14 +17,14 @@ import argparse
 import json
 from pathlib import Path
 
-from datasets import load_from_disk
-from transformers import (
+from datasets import load_from_disk # pyright: ignore[reportMissingImports]
+from transformers import ( # pyright: ignore[reportMissingImports]
     AutoTokenizer,
     AutoModelForTokenClassification,
     DataCollatorForTokenClassification,
     Trainer,
 )
-from seqeval.metrics import precision_score, recall_score, f1_score
+from seqeval.metrics import precision_score, recall_score, f1_score # type: ignore
 
 def compute_metrics_builder(id2label):
     def compute_metrics(p):

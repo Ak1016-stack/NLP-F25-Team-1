@@ -15,15 +15,15 @@ Example:
 import argparse
 from pathlib import Path
 
-from datasets import load_from_disk
-from transformers import (
+from datasets import load_from_disk # type: ignore
+from transformers import ( # type: ignore
     AutoTokenizer,
     AutoModelForTokenClassification,
     DataCollatorForTokenClassification,
     Trainer,
     TrainingArguments,
 )
-from seqeval.metrics import precision_score, recall_score, f1_score, classification_report
+from seqeval.metrics import precision_score, recall_score, f1_score, classification_report # type: ignore
 
 from utils import set_global_seed, infer_label_mappings, to_id_labels
 

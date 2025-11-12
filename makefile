@@ -10,6 +10,7 @@ RAW := data/raw/comi_lingua.jsonl
 MODEL := xlm-roberta-base
 OUTPUT := outputs/xlmr
 RESULTS := results
+ROMAN_ONLY ?= 1
 
 # Default target
 help:
@@ -31,7 +32,8 @@ prep:
 		--input $(RAW) \
 		--output $(DATA_DIR) \
 		--model $(MODEL) \
-		--add_script_id true
+		--add_script_id true \
+		--roman_only $(ROMAN_ONLY) \
 
 # 2️⃣ Fine-tuning
 train:

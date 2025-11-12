@@ -20,8 +20,9 @@ Usage:
     --model xlm-roberta-base \
     --add_script_id true
 """
-
+IGN_TAG = "<IGN>"  # special token to mark ignored sub-tokens; mapped to -100 at training time
 import argparse
+from html import parser
 import json
 import os
 import random
@@ -32,8 +33,29 @@ from typing import Dict, List
 
 import numpy as np
 import regex as re
-from datasets import Dataset, DatasetDict
-from transformers import AutoTokenizer
+from datasets import Dataset, DatasetDict # pyright: ignore[reportMissingImports]
+from transformers import AutoTokenizer # pyright: ignore[reportMissingImports]
+
+# Roman-only filtering helpers
+def token_has_devanagari(tok: str) -> bool:
+    from regex import Regex  # or use global DEVANAGARI_RE if present
+    # if DEVANAGARI_RE already exists, just use it; otherwise:
+    try:
+        pat = DEVANAGARI_RE  # from earlier in your file
+    except NameError:
+        import regex as re
+        pat = re.compile(r"\p{Devanagari}", flags=re.UNICODE)
+    return bool(pat.search(tok or ""))
+
+def is_sentence_roman_only(tokens) -> bool:
+    return all(not token_has_devanagari(t) for t in tokens)
+
+def is_sentence_majority_roman(tokens) -> bool:
+    # optional alternate policy: keep if strictly more roman than devanagari tokens
+    dev = sum(1 for t in tokens if token_has_devanagari(t))
+    return dev < (len(tokens) - dev)
+
+
 
 DEVANAGARI_RE = re.compile(r"\p{Devanagari}", flags=re.UNICODE)
 
@@ -162,6 +184,11 @@ def align_labels_with_tokenizer(
     max_length: int,
     add_script_id: bool,
 ) -> List[Dict]:
+    """
+    Tokenize & align labels.
+    - Keep ALL labels as strings to avoid PyArrow mixed-type issues.
+    - Use IGN_TAG ("<IGN>") for ignored sub-token positions.
+    """
     encoded = []
     for ex in examples:
         tokens = ex["tokens"]
@@ -169,18 +196,24 @@ def align_labels_with_tokenizer(
         if len(tokens) != len(labels):
             raise ValueError("tokens and ner_tags length mismatch")
 
-        enc = tokenizer(tokens, is_split_into_words=True, truncation=True, max_length=max_length)
+        enc = tokenizer(
+            tokens,
+            is_split_into_words=True,
+            truncation=True,
+            max_length=max_length,
+            return_offsets_mapping=False,
+        )
         word_ids = enc.word_ids()
 
         aligned_labels = []
         prev_wid = None
         for wid in word_ids:
             if wid is None:
-                aligned_labels.append(-100)
+                aligned_labels.append(IGN_TAG)         # was -100
             elif wid != prev_wid:
-                aligned_labels.append(labels[wid])  # keep tag STRING; training maps to IDs
+                aligned_labels.append(labels[wid])      # keep BIO tag string
             else:
-                aligned_labels.append(-100)
+                aligned_labels.append(IGN_TAG)          # was -100
             prev_wid = wid
 
         if add_script_id:
@@ -189,7 +222,7 @@ def align_labels_with_tokenizer(
             prev_wid = None
             for wid in word_ids:
                 if wid is None:
-                    sid_aligned.append(-100)
+                    sid_aligned.append(-100)            # script_ids can stay ints throughout
                 elif wid != prev_wid:
                     sid_aligned.append(int(sid_full[wid]))
                 else:
@@ -197,11 +230,25 @@ def align_labels_with_tokenizer(
                 prev_wid = wid
             enc["script_ids"] = sid_aligned
 
-        enc["labels"] = aligned_labels
+        # Keep originals for inspection
+        enc["labels"] = aligned_labels         # <-- now strings only
         enc["tokens"] = tokens
         enc["ner_tags"] = labels
         encoded.append(enc)
-    return encoded
+
+    # final sanitation pass: ensure numeric arrays are ints, labels are strings
+    def _sanitize_row(r: Dict) -> Dict:
+        for key in ("input_ids", "attention_mask", "token_type_ids"):
+            if key in r and isinstance(r[key], list):
+                r[key] = [int(x) for x in r[key]]
+        # labels already strings (BIO tags or "<IGN>")
+        if "labels" in r:
+            r["labels"] = [str(x) for x in r["labels"]]
+        if "script_ids" in r and isinstance(r["script_ids"], list):
+            r["script_ids"] = [int(x) for x in r["script_ids"]]
+        return r
+
+    return [_sanitize_row(row) for row in encoded]
 
 
 def to_hf_dataset(encoded_rows: List[Dict]) -> Dataset:
@@ -241,10 +288,17 @@ def write_dataset_card(out_dir: Path, stats: Dict[str, Dict[str, int]], args: ar
         f.write("\n## Notes\n")
         f.write("- Labels aligned to first subtoken; others set to -100\n")
         f.write("- Deterministic splits via fixed seed\n")
-
-
+        if args.roman_only:
+            f.write("- Filtered to **Roman-only** sentences (rows with any Devanagari removed)\n")
+        elif args.majority_roman:
+            f.write("- Filtered to **majority-Roman** sentences (kept if Roman tokens > Devanagari tokens)\n")
 def main():
     parser = argparse.ArgumentParser(description="Prepare Hinglish NER data")
+    parser.add_argument("--roman_only", type=lambda x: str(x).lower() in {"1","true","yes"}, default=False,
+                    help="If true, keep only sentences with no Devanagari chars (pure Roman).")
+# (optional) expose majority-roman policy instead of strict
+    parser.add_argument("--majority_roman", type=lambda x: str(x).lower() in {"1","true","yes"}, default=False,
+                    help="If true, keep sentences with majority Roman tokens (ignored if --roman_only).")
     parser.add_argument("--input", type=str, required=True)
     parser.add_argument("--output", type=str, required=True)
     parser.add_argument("--model", type=str, default="xlm-roberta-base")
@@ -263,15 +317,26 @@ def main():
     raw = load_raw(input_path)
     if "_all" in raw:
         rows = normalize_and_optionally_add_script(raw["_all"], add_script_id=args.add_script_id)
+        if args.roman_only:
+            rows = [r for r in rows if is_sentence_roman_only(r["tokens"])]
+        elif args.majority_roman:
+            rows = [r for r in rows if is_sentence_majority_roman(r["tokens"])]
         if args.dedupe:
             rows = dedupe_examples(rows)
         splits = random_splits(rows, train_ratio=args.train_ratio, dev_ratio=args.dev_ratio, seed=args.seed)
     else:
         splits = {}
-        for k, v in raw.items():
-            nv = normalize_and_optionally_add_script(v, add_script_id=args.add_script_id)
-            if args.dedupe:
-                nv = dedupe_examples(nv)
+    for k, v in raw.items():
+        nv = normalize_and_optionally_add_script(v, add_script_id=args.add_script_id)
+        if args.dedupe:
+            nv = dedupe_examples(nv)
+
+    # --- NEW: filter to Roman-only (or majority-roman)
+        if args.roman_only:
+            nv = [r for r in nv if is_sentence_roman_only(r["tokens"])]
+        elif args.majority_roman:
+            nv = [r for r in nv if is_sentence_majority_roman(r["tokens"])]
+        # ---
             splits[k] = nv
 
     tokenizer = AutoTokenizer.from_pretrained(args.model)
@@ -315,3 +380,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

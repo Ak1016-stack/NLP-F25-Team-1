@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
-import pytest
+import pytest # pyright: ignore[reportMissingImports]
 
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer # pyright: ignore[reportMissingImports]
 from src.data_prep import align_labels_with_tokenizer
 
 MODEL_NAME = os.environ.get("NER_TEST_MODEL", "xlm-roberta-base")
