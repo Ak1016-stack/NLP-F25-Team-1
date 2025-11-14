@@ -1,0 +1,44 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.log
+*.tmp
+*.egg-info/
+.cache/
+.ipynb_checkpoints/
+
+# Data
+data/raw/*
+data/processed/*
+!data/.gitkeep
+
+# Outputs & Results
+outputs/
+results/
+runs/
+checkpoints/
+logs/
+wandb/
+
+# Environments
+.env
+.venv/
+venv/
+.envrc
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE configs
+.vscode/
+.idea/
+
+# Misc
+*.zip
+*.tar
+*.gz
+*.bak
