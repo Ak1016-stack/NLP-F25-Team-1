@@ -1,13 +1,8 @@
 # NLP-F25-Team-1
 
-# 🧩 Project Proposal: Fine-Tuning vs. In-Context Learning for Hinglish NER
+# 🧩 Fine-Tuning vs. In-Context Learning for Hinglish NER
 
-**Team Members:**
-
-* Ashmit
-* Akshith
-* Harsh
-* Lovnish
+**Author:** Ashmit Mukherjee
 
 **Duration:** 3 Weeks
 **Course:** NLP — Final Project
