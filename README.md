@@ -204,8 +204,13 @@ If you use this work, please cite:
 
 **Ashmit Mukherjee**  
 Email: asm8879@nyu.edu  
-LinkedIn: [linkedin.com/in/ashmit-mukherjee](https://www.linkedin.com/in/ashmit-mukherjee/)  
+LinkedIn: [linkedin.com/in/akshith-karthik](https://www.linkedin.com/in/akshith-karthik/)  
 GitHub: [@Ansester](https://github.com/Ansester)
+
+**Akshith Karthik**  
+Email: ak10747@nyu.edu  
+LinkedIn: [linkedin.com/in/ashmit-mukherjee](https://www.linkedin.com/in//)  
+GitHub: [@Ak1016-stack](https://github.com/Ak1016-stack)
 
 ---
 
