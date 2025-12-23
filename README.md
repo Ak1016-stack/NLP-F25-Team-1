@@ -1,8 +1,8 @@
 # Fine-Tuning vs. In-Context Learning for Hinglish NER
 
-**Author:** Ashmit Mukherjee  
+**Authors:** Ashmit Mukherjee , Akshith Karthik , Harsh Agarwal , Lovnish Julka  
 **Institution:** New York University Abu Dhabi  
-**Contact:** asm8879@nyu.edu
+**Contact:** asm8879@nyu.edu , ak10747@nyu.edu
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
